@@ -1,0 +1,88 @@
+{
+  "display_name": "智能媒体助手 - 轻量版",
+  "loading_order": 50,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "mathslmy",
+  "version": "1.1.0",
+  "homePage": "https://mathslmy.github.io",
+  "description": "轻量化的智能媒体助手，仅支持图片处理、文档处理和 API 调用。",
+  "tags": ["media", "image", "document", "api", "file-processing", "lite"],
+  "features": [
+    "图片压缩和优化",
+    "多格式文档处理 (txt, json, md, csv, html, xml等)",
+    "文件类型识别",
+    "聊天集成 API 支持"
+  ],
+  "settings": [
+    {
+      "key": "enableImageProcessing",
+      "type": "checkbox",
+      "label": "启用图片处理",
+      "default": true
+    },
+    {
+      "key": "enableDocumentProcessing",
+      "type": "checkbox",
+      "label": "启用文档处理",
+      "default": true
+    },
+    {
+      "key": "imageQuality",
+      "type": "slider",
+      "label": "图片质量",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "default": 85
+    },
+    {
+      "key": "maxImageDimension",
+      "type": "number",
+      "label": "图片最大尺寸",
+      "min": 512,
+      "max": 4096,
+      "default": 2048
+    },
+    {
+      "key": "maxFileSize",
+      "type": "number",
+      "label": "文件大小限制 (MB)",
+      "min": 1,
+      "max": 100,
+      "default": 20
+    }
+  ],
+  "supported_file_types": {
+    "images": ["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp"],
+    "documents": [
+      "text/plain", "application/json", "text/markdown", "text/csv",
+      "text/html", "text/xml", "application/xml",
+      "text/javascript", "application/javascript", "text/css", "application/rtf"
+    ]
+  },
+  "supported_extensions": {
+    "images": ["jpg", "jpeg", "png", "gif", "webp", "bmp"],
+    "documents": ["txt", "json", "md", "csv", "html", "xml", "js", "css", "rtf", "log", "conf", "config", "ini", "yaml", "yml"]
+  },
+  "api": {
+    "processFile": "window.__processFileByPlugin",
+    "processImage": "window.__uploadImageByPlugin",
+    "processDocument": "window.__processDocumentByPlugin",
+    "isDocumentFile": "window.__isDocumentFile",
+    "getSupportedTypes": "window.__getSupportedFileTypes"
+  },
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2025-08-28",
+      "changes": [
+        "轻量化：仅保留图片、文档、API 功能",
+        "去掉复杂的设置界面",
+        "精简文件类型识别逻辑"
+      ]
+    }
+  ]
+}
