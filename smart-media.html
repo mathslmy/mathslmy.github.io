@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>智能媒体助手 - 轻量版</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="smart-media-assistant">
+    <h2>📂 智能媒体助手 - 轻量版</h2>
+
+    <!-- 图片处理 -->
+    <section class="smart-media-section">
+      <h3>🖼️ 图片处理</h3>
+      <div class="smart-media-drop-zone" id="image-drop">
+        <div class="icon">📤</div>
+        <div class="text">拖拽图片到这里</div>
+        <div class="subtext">支持 jpg/png/gif/webp/bmp</div>
+      </div>
+      <div id="image-preview"></div>
+    </section>
+
+    <!-- 文档处理 -->
+    <section class="smart-media-section">
+      <h3>📄 文档处理</h3>
+      <div class="smart-media-drop-zone" id="doc-drop">
+        <div class="icon">📤</div>
+        <div class="text">拖拽文档到这里</div>
+        <div class="subtext">支持 txt/json/md/csv/html/xml/js/css/rtf</div>
+      </div>
+      <div id="document-preview"></div>
+    </section>
+
+    <!-- API 设置 -->
+    <section class="smart-media-section">
+      <h3>⚙️ API 调用</h3>
+      <div class="smart-media-settings">
+        
+        <!-- API 地址 -->
+        <div class="smart-media-setting-group">
+          <label class="smart-media-setting-label">模型 API 地址</label>
+          <input type="text" id="api-url" class="smart-media-setting-input"
+                 placeholder="例如: https://api.moonshot.cn/v1/chat/completions">
+        </div>
+
+        <!-- API Key -->
+        <div class="smart-media-setting-group">
+          <label class="smart-media-setting-label">API 密钥</label>
+          <input type="password" id="api-key" class="smart-media-setting-input" placeholder="sk-xxxxxxxx">
+        </div>
+
+        <!-- 模型选择 -->
+        <div class="smart-media-setting-group">
+          <label class="smart-media-setting-label">模型选择</label>
+          <select id="api-model" class="smart-media-setting-input">
+            <option value="">请点击按钮拉取模型列表</option>
+          </select>
+          <button id="btn-load-models" class="btn-small btn-process" style="margin-top:6px;">拉取模型列表</button>
+        </div>
+
+        <button id="btn-save-api" class="btn-small btn-process">保存设置</button>
+      </div>
+
+      <button id="btn-test-api" class="btn-small btn-process" style="margin-top:10px;">测试调用模型</button>
+      <pre id="api-result"></pre>
+    </section>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
