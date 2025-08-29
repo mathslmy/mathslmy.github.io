@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>智能媒体助手 - 轻量版</title>
+  <!-- 插件样式 -->
+  <link rel="stylesheet" href="https://mathslmy.github.io/style.css">
+</head>
+<body>
+  <div class="smart-media-assistant">
+
+    <!-- 图片处理 -->
+    <section class="smart-media-section">
+      <h3>🖼️ 图片处理</h3>
+      <div class="smart-media-drop-zone" id="image-drop-zone">
+        <div class="icon">📷</div>
+        <div class="text">拖拽或点击上传图片</div>
+        <div class="subtext">支持 JPG/PNG/WebP，自动压缩优化</div>
+        <input type="file" id="image-input" accept="image/*" hidden>
+      </div>
+      <div id="image-preview"></div>
+    </section>
+
+    <!-- 文档处理 -->
+    <section class="smart-media-section">
+      <h3>📄 文档处理</h3>
+      <div class="smart-media-drop-zone" id="document-drop-zone">
+        <div class="icon">📂</div>
+        <div class="text">拖拽或点击上传文档</div>
+        <div class="subtext">支持 TXT/JSON/CSV/MD 等</div>
+        <input type="file" id="document-input" hidden>
+      </div>
+      <div id="document-preview"></div>
+    </section>
+
+    <!-- API 设置 -->
+    <section class="smart-media-section">
+      <h3>⚙️ API 调用</h3>
+      <div class="smart-media-settings">
+        <div class="smart-media-setting-group">
+          <label class="smart-media-setting-label">模型 API 地址</label>
+          <input type="text" id="api-url" class="smart-media-setting-input" placeholder="https://api.openai.com/v1/chat/completions">
+        </div>
+        <div class="smart-media-setting-group">
+          <label class="smart-media-setting-label">API 密钥</label>
+          <input type="password" id="api-key" class="smart-media-setting-input" placeholder="sk-xxxxxxxx">
+        </div>
+        <button id="btn-save-api" class="btn-small btn-process">保存设置</button>
+      </div>
+      <button id="btn-test-api" class="btn-small btn-process" style="margin-top:10px;">测试调用模型</button>
+      <pre id="api-result"></pre>
+    </section>
+
+  </div>
+
+  <!-- 插件逻辑 -->
+  <script src="https://mathslmy.github.io/index.js"></script>
+
+  <!-- 页面绑定逻辑 -->
+  <script>
+    // 图片上传
+    document.getElementById('image-drop-zone').addEventListener('click', () => {
+      document.getElementById('image-input').click();
+    });
+    document.getElementById('image-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const result = await window.__uploadImageByPlugin(file);
+        document.getElementById('image-preview').innerText =
+          `图片已处理:\n${JSON.stringify(result.metadata, null, 2)}`;
+      }
+    });
+
+    // 文档上传
+    document.getElementById('document-drop-zone').addEventListener('click', () => {
+      document.getElementById('document-input').click();
+    });
+    document.getElementById('document-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const result = await window.__processDocumentByPlugin(file);
+        document.getElementById('document-preview').innerText =
+          `文档已处理:\n${JSON.stringify(result.metadata, null, 2)}`;
+      }
+    });
+
+    // API 设置
+    function saveApiSettings() {
+      const url = document.getElementById('api-url').value;
+      const key = document.getElementById('api-key').value;
+      localStorage.setItem('smartMediaApiUrl', url);
+      localStorage.setItem('smartMediaApiKey', key);
+      alert('✅ API 设置已保存');
+    }
+    function loadApiSettings() {
+      document.getElementById('api-url').value = localStorage.getItem('smartMediaApiUrl') || '';
+      document.getElementById('api-key').value = localStorage.getItem('smartMediaApiKey') || '';
+    }
+    document.getElementById('btn-save-api').addEventListener('click', saveApiSettings);
+    loadApiSettings();
+
+    // API 测试调用
+    document.getElementById('btn-test-api').addEventListener('click', async () => {
+      const url = localStorage.getItem('smartMediaApiUrl');
+      const key = localStorage.getItem('smartMediaApiKey');
+      if (!url || !key) {
+        alert('请先设置 API 地址和密钥');
+        return;
+      }
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: "你好，请简单介绍一下自己。" }]
+          })
+        });
+        const data = await response.json();
+        document.getElementById('api-result').innerText = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('api-result').innerText = `❌ 调用失败: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
