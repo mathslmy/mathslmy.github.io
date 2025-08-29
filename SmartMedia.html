@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能媒体助手</title>
+<style>
+  body { font-family: Arial, sans-serif; padding:20px; background:#f5f5f5; }
+  h1 { text-align:center; margin-bottom:20px; }
+  .container { max-width:850px; margin:0 auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+  .section { margin-bottom:25px; padding:15px; border:1px solid #ccc; border-radius:8px; background:#fafafa; }
+  h3 { margin-bottom:10px; }
+  label { display:block; margin:8px 0; }
+  input,select { width:100%; padding:6px; margin-top:5px; }
+  input[type="file"]{ padding:0; }
+  button { margin-top:10px; padding:8px 16px; border:none; border-radius:5px; background:#4CAF50; color:#fff; cursor:pointer; }
+  button:hover { background:#45a049; }
+  #status { margin-top:20px; white-space:pre-wrap; font-size:14px; padding:10px; background:#eef; border-radius:6px; }
+  .preview { margin-top:10px; max-width:100%; border:1px solid #ddd; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<h1>智能媒体助手</h1>
+<div class="container">
+
+  <!-- ⚙️ 插件设置 -->
+  <div class="section">
+    <h3>插件设置</h3>
+    <label><input type="checkbox" id="enableImageProcessing" checked> 启用图片处理</label>
+    <label><input type="checkbox" id="enableDocumentProcessing" checked> 启用文档处理</label>
+    <label>图片质量: <span id="imageQualityValue">85</span>%
+      <input type="range" id="imageQuality" min="10" max="100" step="5" value="85">
+    </label>
+    <label>图片最大尺寸: <span id="maxImageDimensionValue">2048</span>px
+      <input type="range" id="maxImageDimension" min="512" max="4096" step="128" value="2048">
+    </label>
+    <label>文件大小限制: <span id="maxFileSizeValue">20</span>MB
+      <input type="range" id="maxFileSize" min="1" max="100" step="1" value="20">
+    </label>
+  </div>
+
+  <!-- 🖼️ 图片上传 -->
+  <div class="section">
+    <h3>图片上传</h3>
+    <input type="file" id="imageInput" accept="image/*">
+    <label>或输入图片链接：</label>
+    <input type="text" id="imageUrl" placeholder="https://example.com/image.jpg">
+    <button id="loadImageBtn">加载并预览图片</button>
+    <div><img id="imagePreview" class="preview" style="display:none;"></div>
+    <button id="processImageBtn">本地处理图片</button>
+    <button id="recognizeImageBtn">使用API识别图片</button>
+  </div>
+
+  <!-- 📄 文档上传 -->
+  <div class="section">
+    <h3>文档上传</h3>
+    <input type="file" id="docInput" accept=".txt,.json,.md,.html,.xml,.csv">
+    <button id="processDocBtn">处理文档</button>
+    <button id="recognizeDocBtn">使用API识别文档</button>
+  </div>
+
+  <!-- 🌐 API 配置 -->
+  <div class="section">
+    <h3>选择 API 源</h3>
+    <select id="apiSource">
+      <option value="google">Google Gemini</option>
+      <option value="kimi">Kimi (Moonshot)</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>Google API 配置</h3>
+    <label>API 密钥:<input type="text" id="googleKey" placeholder="输入Google API Key"></label>
+    <button id="fetchGoogleModels">拉取Google模型</button>
+    <select id="googleModel"><option value="">（默认 gemini-2.0-flash）</option></select>
+    <button id="testGoogleApi">测试Google API</button>
+  </div>
+
+  <div class="section">
+    <h3>Kimi API 配置</h3>
+    <label>API 密钥:<input type="text" id="kimiKey" placeholder="输入Kimi API Key"></label>
+    <button id="fetchKimiModels">拉取Kimi模型</button>
+    <select id="kimiModel"><option value="">请选择模型</option></select>
+    <button id="testKimiApi">测试Kimi API</button>
+  </div>
+
+  <!-- 状态输出 -->
+  <div id="status">状态输出区...</div>
+</div>
+
+<script>
+  // === 持久化配置 ===
+  const savedConfig = JSON.parse(localStorage.getItem("apiConfig") || "{}");
+  ["googleKey","googleModel","kimiKey","kimiModel","apiSource"].forEach(id=>{
+    if(savedConfig[id]) document.getElementById(id).value = savedConfig[id];
+  });
+  function saveConfig(){
+    const cfg={};
+    ["googleKey","googleModel","kimiKey","kimiModel","apiSource"].forEach(id=>{
+      cfg[id]=document.getElementById(id).value;
+    });
+    localStorage.setItem("apiConfig",JSON.stringify(cfg));
+  }
+
+  // === 常量：Google OpenAI 兼容基址 ===
+  const GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
+
+  // === 图片处理器 ===
+  class ImageProcessor {
+    static async processImage(fileOrUrl){
+      return new Promise((resolve,reject)=>{
+        const img=new Image(); img.crossOrigin="anonymous";
+        img.onload=()=>{
+          let w=img.width,h=img.height;
+          const maxDim=parseInt(document.getElementById("maxImageDimension").value);
+          if(w>maxDim||h>maxDim){
+            if(w>h){ h=(h*maxDim)/w; w=maxDim; }
+            else{ w=(w*maxDim)/h; h=maxDim; }
+          }
+          const canvas=document.createElement("canvas");
+          canvas.width=w; canvas.height=h;
+          canvas.getContext("2d").drawImage(img,0,0,w,h);
+          const q=document.getElementById("imageQuality").value/100;
+          resolve({success:true,base64:canvas.toDataURL("image/jpeg",q)});
+        };
+        img.onerror=()=>reject(new Error("图片加载失败"));
+        if(typeof fileOrUrl==="string") img.src=fileOrUrl;
+        else img.src=URL.createObjectURL(fileOrUrl);
+      });
+    }
+  }
+
+  // === 文档处理器 ===
+  class DocumentProcessor {
+    static async processDocument(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=e=>resolve({success:true,content:e.target.result});
+        reader.onerror=()=>reject(new Error("文件读取失败"));
+        reader.readAsText(file,"utf-8");
+      });
+    }
+  }
+
+  // === Google API：模型列表（OpenAI 兼容 /models） ===
+  async function fetchGoogleModels(){
+    try{
+      const key = document.getElementById("googleKey").value.trim();
+      const res = await fetch(GOOGLE_BASE + "models", {
+        headers: { "Authorization": "Bearer " + key }
+      });
+      const txt = await res.text();
+      let data={};
+      try{ data=JSON.parse(txt);}catch{}
+      if(!data.data) throw new Error("无模型响应: "+txt);
+
+      const sel=document.getElementById("googleModel");
+      sel.innerHTML="";
+      const placeholder=document.createElement("option");
+      placeholder.value=""; placeholder.innerText="（默认 gemini-2.0-flash）";
+      sel.appendChild(placeholder);
+
+      data.data.forEach(m=>{
+        const opt=document.createElement("option");
+        opt.value=m.id || m.name || "";
+        opt.innerText=m.id || m.name || "";
+        sel.appendChild(opt);
+      });
+      saveConfig();
+      setStatus("✅ Google模型已更新", true);
+    }catch(e){
+      setStatus("❌ 拉取Google模型失败: " + e.message, false);
+    }
+  }
+
+  // === 图片识别（Google/Kimi） ===
+  async function recognizeImage(base64){
+    const api=document.getElementById("apiSource").value;
+    try{
+      if(api==="google"){
+        const key = document.getElementById("googleKey").value.trim();
+        const model = document.getElementById("googleModel").value || "gemini-2.0-flash";
+        const url = GOOGLE_BASE + "chat/completions";
+        const messages = [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "What is in this image?" },
+              { type: "image_url", image_url: { url: base64 } }
+            ]
+          }
+        ];
+        const res = await fetch(url, {
+          method:"POST",
+          headers:{
+            "Authorization":"Bearer " + key,
+            "Content-Type":"application/json"
+          },
+          body: JSON.stringify({ model, messages })
+        });
+        const txt=await res.text(); let data={raw:txt}; try{ data=JSON.parse(txt);}catch{}
+        setStatus("✅ Google 图片识别结果:\n"+JSON.stringify(data,null,2), true);
+      }else{
+        const body={model:document.getElementById("kimiModel").value,messages:[{role:"user",content:[{type:"image_url",image_url:{url:base64}}]}]};
+        const res=await fetch("https://api.moonshot.cn/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+document.getElementById("kimiKey").value,"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const txt=await res.text(); let data={raw:txt}; try{ data=JSON.parse(txt);}catch{}
+        setStatus("✅ Kimi 图片识别结果:\n"+JSON.stringify(data,null,2), true);
+      }
+    }catch(e){ setStatus("❌ 图片识别失败: "+e.message, false); }
+  }
+
+  // === 文档识别（Google/Kimi） ===
+  async function recognizeDoc(text){
+    const api=document.getElementById("apiSource").value;
+    try{
+      if(api==="google"){
+        const key = document.getElementById("googleKey").value.trim();
+        const model = document.getElementById("googleModel").value || "gemini-2.0-flash";
+        const url = GOOGLE_BASE + "chat/completions";
+        const content = text.length > 4000 ? text.slice(0,4000) : text;
+        const body = {
+          model,
+          messages: [
+            { role:"system", content:"You are a helpful assistant."},
+            { role:"user", content }
+          ]
+        };
+        const res = await fetch(url, {
+          method:"POST",
+          headers:{
+            "Authorization":"Bearer " + key,
+            "Content-Type":"application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        const txt=await res.text(); let data={raw:txt}; try{ data=JSON.parse(txt);}catch{}
+        setStatus("✅ Google 文档识别结果:\n"+JSON.stringify(data,null,2), true);
+      }else{
+        const body={model:document.getElementById("kimiModel").value,messages:[{role:"user",content:text.slice(0,4000)}]};
+        const res=await fetch("https://api.moonshot.cn/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+document.getElementById("kimiKey").value,"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const txt=await res.text(); let data={raw:txt}; try{ data=JSON.parse(txt);}catch{}
+        setStatus("✅ Kimi 文档识别结果:\n"+JSON.stringify(data,null,2), true);
+      }
+    }catch(e){ setStatus("❌ 文档识别失败: "+e.message, false); }
+  }
+
+  function setStatus(msg, injectInput=false){
+    document.getElementById("status").innerText = msg;
+    if(injectInput){
+      window.parent.postMessage({
+        type: "SmartMediaMessage",
+        text: msg
+      }, "*");
+    }
+  }
+
+  // === UI 绑定 ===
+  document.getElementById("imageQuality").oninput=e=>{document.getElementById("imageQualityValue").innerText=e.target.value;};
+  document.getElementById("maxImageDimension").oninput=e=>{document.getElementById("maxImageDimensionValue").innerText=e.target.value;};
+  document.getElementById("maxFileSize").oninput=e=>{document.getElementById("maxFileSizeValue").innerText=e.target.value;};
+
+  document.getElementById("loadImageBtn").onclick=()=>{
+    const url=document.getElementById("imageUrl").value;
+    if(url){document.getElementById("imagePreview").src=url;document.getElementById("imagePreview").style.display="block";}
+  };
+
+  document.getElementById("processImageBtn").onclick=async()=>{
+    const file=document.getElementById("imageInput").files[0]; const url=document.getElementById("imageUrl").value;
+    try{
+      const result=await ImageProcessor.processImage(file||url);
+      document.getElementById("imagePreview").src=result.base64;document.getElementById("imagePreview").style.display="block";
+      setStatus("✅ 图片处理成功，base64长度："+result.base64.length, true);
+    }catch(e){setStatus("❌ 图片处理失败: "+e.message, false);}
+  };
+
+  document.getElementById("recognizeImageBtn").onclick=async()=>{
+    const file=document.getElementById("imageInput").files[0]; const url=document.getElementById("imageUrl").value;
+    try{
+      const result=await ImageProcessor.processImage(file||url);
+      await recognizeImage(result.base64);
+    }catch(e){setStatus("❌ 识别失败: "+e.message, false);}
+  };
+
+  document.getElementById("processDocBtn").onclick=async()=>{
+    const file=document.getElementById("docInput").files[0];
+    if(!file) return alert("请选择文档");
+    try{
+      const result=await DocumentProcessor.processDocument(file);
+      setStatus("✅ 文档处理成功，前200字：\n"+result.content.slice(0,200), true);
+    }catch(e){setStatus("❌ 文档处理失败: "+e.message, false);}
+  };
+
+  document.getElementById("recognizeDocBtn").onclick=async()=>{
+    const file=document.getElementById("docInput").files[0];
+    if(!file) return alert("请选择文档");
+    try{
+      const result=await DocumentProcessor.processDocument(file);
+      await recognizeDoc(result.content);
+    }catch(e){setStatus("❌ 文档识别失败: "+e.message, false);}
+  };
+
+  document.getElementById("fetchGoogleModels").onclick=fetchGoogleModels;
+  document.getElementById("testGoogleApi").onclick=testGoogleApi;
+  document.getElementById("fetchKimiModels").onclick=fetchKimiModels;
+  document.getElementById("testKimiApi").onclick=testKimiApi;
+
+</script>
+
+</body>
+</html>
