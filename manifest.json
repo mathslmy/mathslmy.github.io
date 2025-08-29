@@ -1,0 +1,20 @@
+{
+  "name": "Smart Media",
+  "id": "smartMedia",
+  "author": "mathslmy",
+  "version": "1.0.0",
+  "description": "智能媒体助手 - 支持图片处理、文件处理、API 接口调用（含模型列表实时拉取与切换）",
+  "entry": "index.js",
+  "type": "module",
+  "settings": {
+    "enabled": true,
+    "apiUrl": "",
+    "apiKey": "",
+    "apiModel": ""
+  },
+  "dependencies": [
+    "extensions.js",
+    "toastr",
+    "jquery"
+  ]
+}
